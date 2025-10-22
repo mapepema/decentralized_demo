@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Decentralized Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .status {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .peer-list {
+            list-style: none;
+        }
+
+        .peer-list li {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 5px;
+            font-size: 13px;
+            border: 1px solid #dee2e6;
+        }
+
+        .peer-list li.connected {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .peer-status {
+            font-size: 10px;
+            color: #6c757d;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.own {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message.own .message-content {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .message.other .message-content {
+            background: white;
+            border: 1px solid #dee2e6;
+        }
+
+        .message-username {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .message.own .message-username {
+            color: #f093fb;
+        }
+
+        .message.other .message-username {
+            color: #f5576c;
+        }
+
+        .message-text {
+            font-size: 14px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .system-message {
+            text-align: center;
+            margin: 10px 0;
+            padding: 8px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #004085;
+        }
+
+        .system-message.join {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .system-message.leave {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .system-message.p2p {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #messageInput:focus {
+            border-color: #f093fb;
+        }
+
+        #sendBtn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        #sendBtn:hover {
+            transform: scale(1.05);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .login-box h2 {
+            margin-bottom: 10px;
+            color: #f093fb;
+        }
+
+        .login-box p {
+            margin-bottom: 20px;
+            color: #6c757d;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .login-box input:focus {
+            border-color: #f093fb;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .login-box button:hover {
+            transform: scale(1.02);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2>Join P2P Chat Network</h2>
+            <p>Enter your username to start peer-to-peer chatting</p>
+            <input type="text" id="usernameInput" placeholder="Enter username" maxlength="20" autofocus>
+            <button onclick="joinChat()">Join Network</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔗 P2P Decentralized Chat</h1>
+            <div class="subtitle">Messages sent directly peer-to-peer (no server relay)</div>
+        </div>
+
+        <div class="status">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <div id="peerCount">0 peers connected</div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>Connected Peers</h3>
+                <ul class="peer-list" id="peerList"></ul>
+            </div>
+
+            <div class="chat-area">
+                <div class="messages" id="messages"></div>
+
+                <div class="input-area">
+                    <div class="input-group">
+                        <input type="text" id="messageInput" placeholder="Type a message..." disabled>
+                        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let signalingSocket = null;
+        let username = '';
+        let myPeerId = '';
+        let peerConnections = new Map(); // peerId -> { pc, dataChannel, username }
+
+        const ICE_SERVERS = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+
+        function joinChat() {
+            const input = document.getElementById('usernameInput');
+            username = input.value.trim();
+
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+
+            document.getElementById('loginOverlay').classList.add('hidden');
+            connectToSignalingServer();
+        }
+
+        function connectToSignalingServer() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+
+            signalingSocket = new WebSocket(wsUrl);
+
+            signalingSocket.onopen = () => {
+                updateStatus(true);
+                displaySystemMessage('Connected to signaling server', 'p2p');
+
+                // Register with signaling server
+                signalingSocket.send(JSON.stringify({
+                    type: 'register',
+                    username: username
+                }));
+            };
+
+            signalingSocket.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleSignalingMessage(message);
+            };
+
+            signalingSocket.onclose = () => {
+                updateStatus(false);
+                displaySystemMessage('Disconnected from signaling server', 'leave');
+            };
+
+            signalingSocket.onerror = (error) => {
+                console.error('Signaling WebSocket error:', error);
+            };
+        }
+
+        async function handleSignalingMessage(message) {
+            switch (message.type) {
+                case 'registered':
+                    myPeerId = message.id;
+                    console.log('Registered with ID:', myPeerId);
+                    break;
+
+                case 'peerlist':
+                    // Connect to existing peers
+                    for (const peer of message.peers) {
+                        await createPeerConnection(peer.id, peer.username, true);
+                    }
+                    break;
+
+                case 'peer-joined':
+                    displaySystemMessage(`${message.peer.username} joined the network`, 'join');
+                    updatePeerList();
+                    break;
+
+                case 'peer-left':
+                    displaySystemMessage(`${message.peer.username} left the network`, 'leave');
+                    if (peerConnections.has(message.peer.id)) {
+                        closePeerConnection(message.peer.id);
+                    }
+                    updatePeerList();
+                    break;
+
+                case 'signal':
+                    await handleSignal(message.fromId, message.fromUsername, message.signal);
+                    break;
+            }
+        }
+
+        async function createPeerConnection(peerId, peerUsername, initiator) {
+            if (peerConnections.has(peerId)) {
+                return;
+            }
+
+            console.log(`Creating peer connection with ${peerUsername} (${peerId}), initiator: ${initiator}`);
+
+            const pc = new RTCPeerConnection(ICE_SERVERS);
+            const peerData = { pc, dataChannel: null, username: peerUsername };
+            peerConnections.set(peerId, peerData);
+
+            // ICE candidate handling
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    signalingSocket.send(JSON.stringify({
+                        type: 'signal',
+                        targetId: peerId,
+                        signal: {
+                            type: 'ice-candidate',
+                            candidate: event.candidate
+                        }
+                    }));
+                }
+            };
+
+            pc.onconnectionstatechange = () => {
+                console.log(`Connection state with ${peerUsername}: ${pc.connectionState}`);
+                updatePeerList();
+
+                if (pc.connectionState === 'connected') {
+                    displaySystemMessage(`P2P connection established with ${peerUsername}`, 'p2p');
+                    document.getElementById('messageInput').disabled = false;
+                    document.getElementById('sendBtn').disabled = false;
+                }
+            };
+
+            if (initiator) {
+                // Create data channel
+                const dataChannel = pc.createDataChannel('chat');
+                setupDataChannel(dataChannel, peerId, peerUsername);
+                peerData.dataChannel = dataChannel;
+
+                // Create and send offer
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                signalingSocket.send(JSON.stringify({
+                    type: 'signal',
+                    targetId: peerId,
+                    signal: {
+                        type: 'offer',
+                        sdp: offer
+                    }
+                }));
+            } else {
+                // Wait for data channel
+                pc.ondatachannel = (event) => {
+                    peerData.dataChannel = event.channel;
+                    setupDataChannel(event.channel, peerId, peerUsername);
+                };
+            }
+        }
+
+        function setupDataChannel(dataChannel, peerId, peerUsername) {
+            dataChannel.onopen = () => {
+                console.log(`Data channel opened with ${peerUsername}`);
+                updatePeerList();
+            };
+
+            dataChannel.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+
+                if (message.type === 'chat') {
+                    displayMessage({
+                        username: peerUsername,
+                        content: message.content,
+                        timestamp: message.timestamp,
+                        own: false
+                    });
+
+                    // Forward to other peers (message flooding)
+                    forwardMessage(message, peerId);
+                }
+            };
+
+            dataChannel.onclose = () => {
+                console.log(`Data channel closed with ${peerUsername}`);
+                updatePeerList();
+            };
+        }
+
+        async function handleSignal(fromId, fromUsername, signal) {
+            let peerData = peerConnections.get(fromId);
+
+            if (!peerData && signal.type === 'offer') {
+                await createPeerConnection(fromId, fromUsername, false);
+                peerData = peerConnections.get(fromId);
+            }
+
+            if (!peerData) {
+                console.error('No peer connection for', fromId);
+                return;
+            }
+
+            const pc = peerData.pc;
+
+            switch (signal.type) {
+                case 'offer':
+                    await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+
+                    signalingSocket.send(JSON.stringify({
+                        type: 'signal',
+                        targetId: fromId,
+                        signal: {
+                            type: 'answer',
+                            sdp: answer
+                        }
+                    }));
+                    break;
+
+                case 'answer':
+                    await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+                    break;
+
+                case 'ice-candidate':
+                    await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                    break;
+            }
+        }
+
+        function closePeerConnection(peerId) {
+            const peerData = peerConnections.get(peerId);
+            if (peerData) {
+                if (peerData.dataChannel) {
+                    peerData.dataChannel.close();
+                }
+                peerData.pc.close();
+                peerConnections.delete(peerId);
+            }
+            updatePeerList();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (!content) {
+                return;
+            }
+
+            const message = {
+                type: 'chat',
+                content: content,
+                timestamp: new Date().toISOString(),
+                fromPeer: myPeerId
+            };
+
+            // Send to all connected peers
+            let sentCount = 0;
+            peerConnections.forEach((peerData) => {
+                if (peerData.dataChannel && peerData.dataChannel.readyState === 'open') {
+                    peerData.dataChannel.send(JSON.stringify(message));
+                    sentCount++;
+                }
+            });
+
+            if (sentCount > 0) {
+                // Display own message
+                displayMessage({
+                    username: username,
+                    content: content,
+                    timestamp: message.timestamp,
+                    own: true
+                });
+
+                input.value = '';
+            } else {
+                alert('No peers connected. Messages cannot be sent.');
+            }
+        }
+
+        function forwardMessage(message, excludePeerId) {
+            // Forward message to all other peers (except sender)
+            peerConnections.forEach((peerData, peerId) => {
+                if (peerId !== excludePeerId &&
+                    peerData.dataChannel &&
+                    peerData.dataChannel.readyState === 'open') {
+                    peerData.dataChannel.send(JSON.stringify(message));
+                }
+            });
+        }
+
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.own ? 'own' : 'other'}`;
+
+            const time = new Date(message.timestamp).toLocaleTimeString();
+
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-username">${escapeHtml(message.username)}</div>
+                    <div class="message-text">${escapeHtml(message.content)}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function displaySystemMessage(content, variant) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `system-message ${variant || ''}`;
+            messageDiv.textContent = content;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updatePeerList() {
+            const peerList = document.getElementById('peerList');
+            peerList.innerHTML = '';
+
+            let connectedCount = 0;
+
+            peerConnections.forEach((peerData, peerId) => {
+                const li = document.createElement('li');
+                const isConnected = peerData.dataChannel && peerData.dataChannel.readyState === 'open';
+
+                if (isConnected) {
+                    connectedCount++;
+                    li.className = 'connected';
+                }
+
+                li.innerHTML = `
+                    ${escapeHtml(peerData.username)}
+                    <span class="peer-status">${isConnected ? '🟢 Connected' : '🟡 Connecting...'}</span>
+                `;
+
+                peerList.appendChild(li);
+            });
+
+            document.getElementById('peerCount').textContent =
+                `${connectedCount} peer${connectedCount !== 1 ? 's' : ''} connected`;
+        }
+
+        function updateStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected to signaling';
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Enter key to send
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    joinChat();
+                }
+            });
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            peerConnections.forEach((_, peerId) => {
+                closePeerConnection(peerId);
+            });
+            if (signalingSocket) {
+                signalingSocket.close();
+            }
+        });
+    </script>
+</body>
+</html>

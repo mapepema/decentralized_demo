@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centralized Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .status {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .user-list {
+            list-style: none;
+        }
+
+        .user-list li {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-radius: 5px;
+            font-size: 14px;
+            border: 1px solid #dee2e6;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.own {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message.own .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.other .message-content {
+            background: white;
+            border: 1px solid #dee2e6;
+        }
+
+        .message.history .message-content {
+            background: #f8f9fa;
+            border: 1px solid #d6d6d6;
+            opacity: 0.85;
+        }
+
+        .message-username {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .message.own .message-username {
+            color: #667eea;
+        }
+
+        .message.other .message-username {
+            color: #764ba2;
+        }
+
+        .message-text {
+            font-size: 14px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .system-message {
+            text-align: center;
+            margin: 10px 0;
+            padding: 8px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #004085;
+        }
+
+        .system-message.join {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .system-message.leave {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .history-divider {
+            text-align: center;
+            margin: 15px 0;
+            padding: 8px;
+            background: #e3e6ea;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #495057;
+            font-weight: bold;
+            border: 1px dashed #adb5bd;
+        }
+
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendBtn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        #sendBtn:hover {
+            transform: scale(1.05);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .login-box h2 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .login-box p {
+            margin-bottom: 20px;
+            color: #6c757d;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .login-box input:focus {
+            border-color: #667eea;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .login-box button:hover {
+            transform: scale(1.02);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2>Join Centralized Chat</h2>
+            <p>Enter your username to start chatting</p>
+            <input type="text" id="usernameInput" placeholder="Enter username" maxlength="20" autofocus>
+            <button onclick="joinChat()">Join Chat</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🏢 Centralized Chat</h1>
+            <div class="subtitle">All messages go through central server + Message History</div>
+        </div>
+
+        <div class="status">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <div id="userCount">0 users online</div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>Online Users</h3>
+                <ul class="user-list" id="userList"></ul>
+            </div>
+
+            <div class="chat-area">
+                <div class="messages" id="messages"></div>
+
+                <div class="input-area">
+                    <div class="input-group">
+                        <input type="text" id="messageInput" placeholder="Type a message..." disabled>
+                        <button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let username = '';
+
+        function joinChat() {
+            const input = document.getElementById('usernameInput');
+            username = input.value.trim();
+
+            if (!username) {
+                alert('Please enter a username');
+                return;
+            }
+
+            document.getElementById('loginOverlay').classList.add('hidden');
+            connectToServer();
+        }
+
+        function connectToServer() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                updateStatus(true);
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+
+                // Send join message
+                ws.send(JSON.stringify({
+                    type: 'join',
+                    username: username
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = () => {
+                updateStatus(false);
+                document.getElementById('messageInput').disabled = true;
+                document.getElementById('sendBtn').disabled = true;
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function handleMessage(message) {
+            switch (message.type) {
+                case 'message':
+                    displayMessage(message);
+                    break;
+                case 'system':
+                    displaySystemMessage(message);
+                    break;
+                case 'userlist':
+                    updateUserList(message.users);
+                    break;
+                case 'history':
+                    displayHistory(message.messages);
+                    break;
+                case 'error':
+                    alert(message.content);
+                    break;
+            }
+        }
+
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.own ? 'own' : 'other'}`;
+
+            const time = new Date(message.timestamp).toLocaleTimeString();
+
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-username">${message.username}</div>
+                    <div class="message-text">${escapeHtml(message.content)}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function displaySystemMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `system-message ${message.variant || ''}`;
+            messageDiv.textContent = message.content;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function displayHistory(messages) {
+            if (messages.length === 0) return;
+
+            const messagesDiv = document.getElementById('messages');
+
+            // Add divider
+            const divider = document.createElement('div');
+            divider.className = 'history-divider';
+            divider.innerHTML = `📜 Message History (${messages.length} messages) - Stored on Server`;
+            messagesDiv.appendChild(divider);
+
+            // Display all history messages
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message history';
+
+                const time = new Date(msg.timestamp).toLocaleTimeString();
+
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <div class="message-username">${escapeHtml(msg.username)}</div>
+                        <div class="message-text">${escapeHtml(msg.content)}</div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                `;
+
+                messagesDiv.appendChild(messageDiv);
+            });
+
+            // Add end of history divider
+            const endDivider = document.createElement('div');
+            endDivider.className = 'history-divider';
+            endDivider.innerHTML = '📍 End of History - New Messages Below';
+            messagesDiv.appendChild(endDivider);
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateUserList(users) {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.textContent = user;
+                if (user === username) {
+                    li.style.fontWeight = 'bold';
+                    li.style.color = '#667eea';
+                }
+                userList.appendChild(li);
+            });
+
+            document.getElementById('userCount').textContent = `${users.length} user${users.length !== 1 ? 's' : ''} online`;
+        }
+
+        function updateStatus(connected) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected to server';
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (!content || !ws || ws.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            ws.send(JSON.stringify({
+                type: 'message',
+                content: content
+            }));
+
+            input.value = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Enter key to send
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    joinChat();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

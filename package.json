@@ -1,0 +1,25 @@
+{
+  "name": "centralized-vs-decentralized-chat-web",
+  "version": "1.0.0",
+  "description": "Web-based chat application demonstrating centralized vs decentralized communication",
+  "main": "centralized_server.js",
+  "scripts": {
+    "start:centralized": "node centralized_server.js",
+    "start:p2p": "node p2p_server.js",
+    "dev:centralized": "PORT=8080 node centralized_server.js",
+    "dev:p2p": "PORT=8081 node p2p_server.js"
+  },
+  "keywords": [
+    "chat",
+    "websocket",
+    "webrtc",
+    "p2p",
+    "decentralized",
+    "centralized"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2"
+  }
+}

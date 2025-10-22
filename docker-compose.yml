@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  centralized-chat:
+    build:
+      context: .
+      dockerfile: Dockerfile.centralized
+    container_name: centralized-chat-server
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  p2p-chat:
+    build:
+      context: .
+      dockerfile: Dockerfile.p2p
+    container_name: p2p-chat-server
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - chat-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8081', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  chat-network:
+    driver: bridge

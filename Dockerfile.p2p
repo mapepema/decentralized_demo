@@ -1,0 +1,27 @@
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install --production
+
+# Copy application files
+COPY p2p_server.js .
+COPY p2p_client.html .
+
+# Expose the port
+EXPOSE 8081
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8081', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Set environment variable
+ENV PORT=8081
+
+# Start the server
+CMD ["node", "p2p_server.js"]
